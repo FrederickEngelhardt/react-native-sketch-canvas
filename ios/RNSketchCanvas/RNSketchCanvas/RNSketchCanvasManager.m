@@ -120,6 +120,14 @@ RCT_EXPORT_METHOD(transferToBase64:(nonnull NSNumber *)reactTag type: (NSString*
     }];
 }
 
+RCT_EXPORT_METHOD(isPointOnPath:(nonnull NSNumber *)reactTag x:(nonnull NSNumber *)x y:(nonnull NSNumber* )y pathId:(nonnull NSNumber *)pathId callback:(RCTResponseSenderBlock)callback)
+{
+    NSNumber *_pathId = [pathId intValue] == -1? nil: pathId;
+    [self runCanvas:reactTag block:^(RNSketchCanvas *canvas) {
+        callback(@[[NSNull null], [canvas isPointOnPath: [x floatValue] y:[y floatValue] pathId:_pathId]]);
+    }];
+}
+
 #pragma mark - Utils
 
 - (void)runCanvas:(nonnull NSNumber *)reactTag block:(void (^)(RNSketchCanvas *canvas))block {

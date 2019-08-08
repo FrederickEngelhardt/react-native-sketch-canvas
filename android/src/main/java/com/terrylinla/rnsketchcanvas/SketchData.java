@@ -1,5 +1,6 @@
 package com.terrylinla.rnsketchcanvas;
 
+import android.annotation.TargetApi;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -9,6 +10,8 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Region;
+import android.util.Log;
 
 import java.util.ArrayList;
 
@@ -217,4 +220,41 @@ public class SketchData {
         path.moveTo(mid1.x, mid1.y);
         path.quadTo(pPoint.x, pPoint.y, mid2.x, mid2.y);
     }
+
+    //  see: https://stackoverflow.com/questions/11184397/path-intersection-in-android
+    @TargetApi(19)
+    boolean isPointOnPath(int x, int y, int r, Region boundingRegion) {
+        int radius = r;       //Math.max((int)(strokeWidth * 0.5), r);
+        Path path = mPath == null ? evaluatePath(): mPath;
+        Path mTouchPath = new Path();
+        mTouchPath.addCircle(x, y, radius, Path.Direction.CW);
+
+        Region region1 = new Region();
+        region1.setPath(mTouchPath, new Region(Math.max(x - radius, 0), Math.max(y - radius, 0), Math.max(x + radius, 0), Math.max(y + radius, 0)));
+        Region region2 = new Region();
+        region2.setPath(path, boundingRegion);
+
+        //Log.d("RNSketchCanvas", "isPointOnPath: r: " + r + ", left: " + Math.max(x - radius, 0)+ ", top: " + Math.max(y - radius, 0)+ ", right: " +Math.max(x + radius, 0)+ ", bottom: " + Math.max(y + radius, 0));
+        //return !region1.quickReject(region2) && region1.op(region2, Region.Op.INTERSECT);
+        return region1.op(region2, Region.Op.INTERSECT);
+    }
+
+/*
+    //  could not get these methods to work
+    @TargetApi(26)
+    private float[][] mGetCoords() {
+        float acceptableError = 0.5f;
+        if (mPath == null && !this.isTranslucent) mPath = evaluatePath();
+        if(mPath != null) {
+            float[] apprx = mPath.approximate(acceptableError);
+            float[][] coords = new float[(int)(apprx.length/3)][3];
+            for (int i=0; i<apprx.length; i++) {
+                coords[(int)(i/3)][i%3] = apprx[i];
+            }
+            return coords;
+        }
+        return new float[0][0];
+    }
+
+    */
 }

@@ -450,6 +450,70 @@
     }
 }
 
+- (NSArray*)isPointOnPath: (float)x y:(float)y pathId:(nullable NSNumber*)pathId {
+    CGPoint point = CGPointMake(x, y);
+    NSMutableArray *isPointOnPaths = [[NSMutableArray alloc]init];
+    
+    for (RNSketchData *path in _paths) {
+        if(([pathId intValue] == path.pathId) || pathId == nil){
+            BOOL containsPoint = [self containsPoint:point onPath:path inFillArea:NO];
+            if(containsPoint){
+                [isPointOnPaths addObject:[NSNumber numberWithInt:path.pathId]];
+            }
+        }
+    }
+    
+    return (NSArray*)isPointOnPaths;
+}
+
+- (BOOL)containsPoint:(CGPoint)point onPath:(RNSketchData *)path inFillArea:(BOOL)inFill
+{
+    //  see this article: https://oleb.net/blog/2012/02/cgpath-hit-testing/
+    
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    UIBezierPath *_path = [path evaluatePath];
+    UIBezierPath *contour = [self tapTargetForPath:_path];
+    
+    BOOL    isHit = NO;
+    
+    CGContextSaveGState(context);
+    CGContextAddPath(context, contour.CGPath);
+    isHit = CGPathContainsPoint(contour.CGPath, nil, point, false);
+    CGContextRestoreGState(context);
+    
+    return isHit;
+}
+
+- (UIBezierPath *)tapTargetForPath:(UIBezierPath *)path
+{
+    if (path == nil) {
+        return nil;
+    }
+    
+    CGPathRef tapTargetPath = CGPathCreateCopyByStrokingPath(path.CGPath, NULL, fmaxf(35.0f, path.lineWidth), path.lineCapStyle, path.lineJoinStyle, path.miterLimit);
+    if (tapTargetPath == NULL) {
+        return nil;
+    }
+    
+    UIBezierPath *tapTarget = [UIBezierPath bezierPathWithCGPath:tapTargetPath];
+    CGPathRelease(tapTargetPath);
+    return tapTarget;
+}
+
+- (CGPathDrawingMode)getFillMode:(UIBezierPath *)path inFillArea:(BOOL)inFill
+{
+    CGPathDrawingMode mode = kCGPathStroke;
+    if (inFill)
+    {
+        if (path.usesEvenOddFillRule)
+            mode = kCGPathEOFill;
+        else
+            mode = kCGPathFill;
+    }
+    
+    return mode;
+}
+
 @end
 
 @implementation CanvasText

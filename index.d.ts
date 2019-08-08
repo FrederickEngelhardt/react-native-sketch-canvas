@@ -1,9 +1,10 @@
 import * as React from 'react'
 import {
-  ViewProperties,
-  StyleProp,
-  ViewStyle
-} from "react-native"
+    ViewProperties,
+    StyleProp,
+    ViewStyle
+} from "react-native";
+import { GestureHandlerProperties, PanGestureHandler } from "react-native-gesture-handler";
 
 type ImageType = 'png' | 'jpg'
 
@@ -24,6 +25,8 @@ type Path = {
   size: Size
   path: PathData
 }
+
+//export type TouchStates = true | false | 'draw' | 'touch' | 'none';
 
 type CanvasText = {
   text: string
@@ -61,66 +64,122 @@ export interface LocalSourceImage {
 }
 
 export interface SketchCanvasProps {
-  style?: StyleProp<ViewStyle>
-  strokeColor?: string
-  strokeWidth?: number
-  user?: string
+    style?: StyleProp<ViewStyle>
+    strokeColor?: string
+    strokeWidth?: number
+    user?: string
+    paths?: Path[]
+    text?: CanvasText[]
+    localSourceImage?: LocalSourceImage
+    touchEnabled?: boolean
 
-  text?: CanvasText[]
-  localSourceImage?: LocalSourceImage
-  touchEnabled?: boolean
+    /**
+     * Android Only: Provide a Dialog Title for the Image Saving PermissionDialog. Defaults to empty string if not set
+     */
+    permissionDialogTitle?: string
 
-  /**
-   * Android Only: Provide a Dialog Title for the Image Saving PermissionDialog. Defaults to empty string if not set
-   */
-  permissionDialogTitle?: string
+    /**
+     * Android Only: Provide a Dialog Message for the Image Saving PermissionDialog. Defaults to empty string if not set
+     */
+    permissionDialogMessage?: string
 
-  /**
-   * Android Only: Provide a Dialog Message for the Image Saving PermissionDialog. Defaults to empty string if not set
-   */
-  permissionDialogMessage?: string
+    /**
+     * Android Only: set hardware acceleration. Defaults to false. If you prefer performance over functionality try setting to true
+     */
+    hardwareAccelerated?: boolean
 
-  onStrokeStart?: () => void
-  onStrokeChanged?: () => void
-  onStrokeEnd?: (path: Path) => void
-  onSketchSaved?: (result: boolean, path: string) => void
-  onPathsChange?: (pathsCount: number) => void
+    onStrokeStart?: (x: number, y: number) => void
+    onStrokeChanged?: (x: number, y: number) => void
+    onStrokeEnd?: (path: Path) => void
+    onSketchSaved?: (result: boolean, path: string) => void
+    onPathsChange?: (pathsCount: number) => void,
+
+
 }
 
-export class SketchCanvas extends React.Component<SketchCanvasProps & ViewProperties> {
-  clear(): void
-  undo(): number
-  addPath(data: Path): void
-  deletePath(id: number): void
+export type GestureHandlerProps = Pick<GestureHandlerProperties, "simultaneousHandlers" | "waitFor"> & { panHandler: React.RefObject<PanGestureHandler> };
 
-  /**
-   * @param imageType "png" or "jpg"
-   * @param includeImage Set to `true` to include the image loaded from `LocalSourceImage`
-   * @param includeText Set to `true` to include the text drawn from `Text`.
-   * @param cropToImageSize Set to `true` to crop output image to the image loaded from `LocalSourceImage`
+export class SketchCanvas extends React.Component<SketchCanvasProps & GestureHandlerProps & ViewProperties> {
+    clear(): void
+    undo(): number
+    addPath(data: Path): void
+    addPaths(paths: Path[]): void
+    deletePath(id: number): void
+    deletePaths(pathIds: number[]): void
+
+    /**
+     * @param imageType "png" or "jpg"
+     * @param includeImage Set to `true` to include the image loaded from `LocalSourceImage`
+     * @param includeText Set to `true` to include the text drawn from `Text`.
+     * @param cropToImageSize Set to `true` to crop output image to the image loaded from `LocalSourceImage`
+     */
+    save(imageType: ImageType, transparent: boolean, folder: string, filename: string, includeImage: boolean, includeText: boolean, cropToImageSize: boolean): void
+    getPaths(): Path[]
+
+    /**
+     * @param imageType "png" or "jpg"
+     * @param includeImage Set to `true` to include the image loaded from `LocalSourceImage`
+     * @param includeText Set to `true` to include the text drawn from `Text`.
+     * @param cropToImageSize Set to `true` to crop output image to the image loaded from `LocalSourceImage`
+     */
+    getBase64(imageType: ImageType, transparent: boolean, includeImage: boolean, includeText: boolean, cropToImageSize: boolean, callback: (error: any, result?: string) => void): void
+
+    /**
+   * @param x Set it to `evt.nativeEvent.locationX`
+   * @param y Set it to `evt.nativeEvent.locationY`
+   * @param pathId Set to the pathId or undefined
+   * @param callback If omitted the method returns a Promise
    */
-  save(imageType: ImageType, transparent: boolean, folder: string, filename: string, includeImage: boolean, includeText: boolean, cropToImageSize: boolean): void
-  getPaths(): Path[]
+    isPointOnPath(x: number, y: number, pathId: number, callback: (error: any, result?: boolean) => void): void
+    isPointOnPath(x: number, y: number, callback: (error: any, result?: Array<number>) => void): void
+    isPointOnPath(x: number, y: number, pathId: number): Promise<boolean>
+    isPointOnPath(x: number, y: number): Promise<number[]>
 
-  /**
-   * @param imageType "png" or "jpg"
-   * @param includeImage Set to `true` to include the image loaded from `LocalSourceImage`
-   * @param includeText Set to `true` to include the text drawn from `Text`.
-   * @param cropToImageSize Set to `true` to crop output image to the image loaded from `LocalSourceImage`
-   */
-  getBase64(imageType: ImageType, transparent: boolean, includeImage: boolean, includeText: boolean, cropToImageSize: boolean, callback: (error: any, result?: string) => void): void
+    /**
+     * start a new path
+     * use this method to customize touch handling or to mock drawing animations
+     * if customizing touch handling, be sure to pass `touchEnabled = false` to avoid duplicate drawing/touches
+     * [startPath, addPoint, endPath]
+     * 
+     * @param x
+     * @param y
+     */
+    startPath(x: number, y: number): void
+    /**
+     * add a point to the current path
+     * use this method to customize touch handling or to mock drawing animations
+     * if customizing touch handling, be sure to pass `touchEnabled = false` to avoid duplicate drawing/touches
+     * [startPath, addPoint, endPath]
+     * 
+     * @param x
+     * @param y
+     */
+    addPoint(x: number, y: number): void
+    /**
+     * close the current path
+     * use this method to customize touch handling or to mock drawing animations
+     * if customizing touch handling, be sure to pass `touchEnabled = false` to avoid duplicate drawing/touches
+     * [startPath, addPoint, endPath]
+     * */
+    endPath(): void
 
-  static MAIN_BUNDLE: string
-  static DOCUMENT: string
-  static LIBRARY: string
-  static CACHES: string
+
+    static MAIN_BUNDLE: string
+    static DOCUMENT: string
+    static LIBRARY: string
+    static CACHES: string
+
+    /**
+     * Utility function that provides an id for future use
+     * */
+    static generatePathId(): number
 }
 
 export interface RNSketchCanvasProps {
   containerStyle?: StyleProp<ViewStyle>
   canvasStyle?: StyleProp<ViewStyle>
-  onStrokeStart?: () => void
-  onStrokeChanged?: () => void
+  onStrokeStart?: (x: number, y: number) => void
+  onStrokeChanged?: (x: number, y: number) => void
   onStrokeEnd?: (path: Path) => void
   onClosePressed?: () => void
   onUndoPressed?: (id: number) => void

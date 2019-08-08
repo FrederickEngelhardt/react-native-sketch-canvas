@@ -32,8 +32,8 @@ public class SketchCanvasManager extends SimpleViewManager<SketchCanvas> {
     public static final int COMMAND_ADD_POINT = 1;
     public static final int COMMAND_NEW_PATH = 2;
     public static final int COMMAND_CLEAR = 3;
-    public static final int COMMAND_ADD_PATH = 4;
-    public static final int COMMAND_DELETE_PATH = 5;
+    public static final int COMMAND_ADD_PATHS = 4;
+    public static final int COMMAND_DELETE_PATHS = 5;
     public static final int COMMAND_SAVE = 6;
     public static final int COMMAND_END_PATH = 7;
 
@@ -41,6 +41,7 @@ public class SketchCanvasManager extends SimpleViewManager<SketchCanvas> {
 
     private static final String PROPS_LOCAL_SOURCE_IMAGE = "localSourceImage";
     private static final String PROPS_TEXT = "text";
+    private static final String PROPS_HARDWARE_ACCELERATED = "hardwareAccelerated";
 
     @Override
     public String getName() {
@@ -53,13 +54,19 @@ public class SketchCanvasManager extends SimpleViewManager<SketchCanvas> {
         return SketchCanvasManager.Canvas;
     }
 
+    @Override
+    public void onDropViewInstance(SketchCanvas view) {
+        Log.i(getName(), "Tearing down SketchCanvas " +  view.toString());
+        view.tearDown();
+    }
+
     @ReactProp(name = PROPS_LOCAL_SOURCE_IMAGE)
     public void setLocalSourceImage(SketchCanvas viewContainer, ReadableMap localSourceImage) {
         if (localSourceImage != null && localSourceImage.getString("filename") != null) {
             viewContainer.openImageFile(
-                localSourceImage.hasKey("filename") ? localSourceImage.getString("filename") : null,
-                localSourceImage.hasKey("directory") ? localSourceImage.getString("directory") : "",
-                localSourceImage.hasKey("mode") ? localSourceImage.getString("mode") : ""
+                    localSourceImage.hasKey("filename") ? localSourceImage.getString("filename") : null,
+                    localSourceImage.hasKey("directory") ? localSourceImage.getString("directory") : "",
+                    localSourceImage.hasKey("mode") ? localSourceImage.getString("mode") : ""
             );
         }
     }
@@ -69,6 +76,11 @@ public class SketchCanvasManager extends SimpleViewManager<SketchCanvas> {
         viewContainer.setCanvasText(text);
     }
 
+    @ReactProp(name = PROPS_HARDWARE_ACCELERATED)
+    public void setHardwareAccelerated(SketchCanvas viewContainer, boolean useAcceleration) {
+        viewContainer.setHardwareAccelerated(useAcceleration);
+    }
+
     @Override
     public Map<String,Integer> getCommandsMap() {
         Map<String, Integer> map = new HashMap<>();
@@ -76,10 +88,11 @@ public class SketchCanvasManager extends SimpleViewManager<SketchCanvas> {
         map.put("addPoint", COMMAND_ADD_POINT);
         map.put("newPath", COMMAND_NEW_PATH);
         map.put("clear", COMMAND_CLEAR);
-        map.put("addPath", COMMAND_ADD_PATH);
-        map.put("deletePath", COMMAND_DELETE_PATH);
+        map.put("addPaths", COMMAND_ADD_PATHS);
+        map.put("deletePaths", COMMAND_DELETE_PATHS);
         map.put("save", COMMAND_SAVE);
         map.put("endPath", COMMAND_END_PATH);
+
 
         return map;
     }
@@ -87,6 +100,16 @@ public class SketchCanvasManager extends SimpleViewManager<SketchCanvas> {
     @Override
     protected void addEventEmitters(ThemedReactContext reactContext, SketchCanvas view) {
 
+    }
+
+    public static ArrayList<PointF> parsePathCoords(ReadableArray coords){
+        ArrayList<PointF> pointPath;
+        pointPath = new ArrayList<PointF>(coords.size());
+        for (int i=0; i<coords.size(); i++) {
+            String[] coor = coords.getString(i).split(",");
+            pointPath.add(new PointF(Float.parseFloat(coor[0]), Float.parseFloat(coor[1])));
+        }
+        return pointPath;
     }
 
     @Override
@@ -104,18 +127,15 @@ public class SketchCanvasManager extends SimpleViewManager<SketchCanvas> {
                 view.clear();
                 return;
             }
-            case COMMAND_ADD_PATH: {
-                ReadableArray path = args.getArray(3);
-                ArrayList<PointF> pointPath = new ArrayList<PointF>(path.size());
-                for (int i=0; i<path.size(); i++) {
-                    String[] coor = path.getString(i).split(",");
-                    pointPath.add(new PointF(Float.parseFloat(coor[0]), Float.parseFloat(coor[1])));
-                }
-                view.addPath(args.getInt(0), args.getInt(1), (float)args.getDouble(2), pointPath);
+
+            case COMMAND_ADD_PATHS: {
+                view.addPaths(args);
                 return;
             }
-            case COMMAND_DELETE_PATH: {
-                view.deletePath(args.getInt(0));
+            case COMMAND_DELETE_PATHS: {
+                for (int k = 0; k < args.size(); k++) {
+                    view.deletePath(args.getInt(k));
+                }
                 return;
             }
             case COMMAND_SAVE: {

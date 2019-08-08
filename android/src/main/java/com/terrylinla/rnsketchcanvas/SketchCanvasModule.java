@@ -1,6 +1,6 @@
 package com.terrylinla.rnsketchcanvas;
 
-import android.util.Log;
+import android.annotation.TargetApi;
 
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -29,8 +29,41 @@ public class SketchCanvasModule extends ReactContextBaseJavaModule {
             uiManager.addUIBlock(new UIBlock() {
                 public void execute(NativeViewHierarchyManager nvhm) {
                     SketchCanvas view = (SketchCanvas) nvhm.resolveView(tag);
-                    String base64 = view.getBase64(type, transparent, includeImage, includeText, cropToImageSize);
-                    callback.invoke(null, base64);
+                    view.getBase64(type, transparent, includeImage, includeText, cropToImageSize, callback);
+                }
+            });
+        } catch (Exception e) {
+            callback.invoke(e.getMessage(), null);
+        }
+    }
+
+    @ReactMethod
+    @TargetApi(19)
+    public void isPointOnPath(final int tag, final int x, final int y, final int pathId, final Callback callback){
+        try {
+            final ReactApplicationContext context = getReactApplicationContext();
+            UIManagerModule uiManager = context.getNativeModule(UIManagerModule.class);
+            uiManager.addUIBlock(new UIBlock() {
+                public void execute(NativeViewHierarchyManager nvhm) {
+                    SketchCanvas view = (SketchCanvas) nvhm.resolveView(tag);
+                    callback.invoke(null, pathId == -1? view.isPointOnPath(x, y): view.isPointOnPath(x, y, pathId));
+                }
+            });
+        } catch (Exception e) {
+            callback.invoke(e.getMessage(), null);
+        }
+    }
+
+    @ReactMethod
+    public void setTouchRadius(final int tag, final int r, final Callback callback){
+        try {
+            final ReactApplicationContext context = getReactApplicationContext();
+            UIManagerModule uiManager = context.getNativeModule(UIManagerModule.class);
+            uiManager.addUIBlock(new UIBlock() {
+                public void execute(NativeViewHierarchyManager nvhm) {
+                    SketchCanvas view = (SketchCanvas) nvhm.resolveView(tag);
+                    view.setTouchRadius(r);
+                    callback.invoke(null, true);
                 }
             });
         } catch (Exception e) {
