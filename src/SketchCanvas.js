@@ -22,7 +22,7 @@ const RNSketchCanvas = requireNativeComponent('RNSketchCanvas', SketchCanvas, {
 });
 const SketchCanvasManager = NativeModules.RNSketchCanvasManager || {};
 
-class SketchCanvas extends React.Component {
+class SketchCanvas extends React.PureComponent {
   static propTypes = {
     style: ViewPropTypes.style,
     strokeColor: PropTypes.string,
