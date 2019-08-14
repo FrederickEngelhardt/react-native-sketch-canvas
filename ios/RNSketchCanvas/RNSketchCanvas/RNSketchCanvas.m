@@ -39,13 +39,6 @@
     return self;
 }
 
-- (void)dealloc {
-    CGContextRelease(_drawingContext);
-    _drawingContext = nil;
-    CGImageRelease(_frozenImage);
-    _frozenImage = nil;
-}
-
 - (void)drawRect:(CGRect)rect {
     CGContextRef context = UIGraphicsGetCurrentContext();
 
@@ -253,6 +246,7 @@
         [data drawInContext:_drawingContext];
         [self setFrozenImageNeedsUpdate];
         [self setNeedsDisplay];
+        [self notifyPathsUpdate];
     }
 }
 
@@ -293,7 +287,6 @@
         [_currentPath drawInContext:_drawingContext];
     }
     _currentPath = nil;
-    [self notifyPathsUpdate];
 }
 
 - (void) clear {

@@ -55,7 +55,7 @@ export interface SavePreference {
 }
 
 export interface LocalSourceImage {
-  filename: string
+  path: string
   directory?: string
   mode?: 'AspectFill' | 'AspectFit' | 'ScaleToFill'
 }
