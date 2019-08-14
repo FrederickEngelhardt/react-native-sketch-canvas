@@ -92,11 +92,14 @@ class SketchCanvas extends React.Component {
     this.state.text = this._processText(props.text ? props.text.map(t => Object.assign({}, t)) : null)
   }
 
-  componentWillReceiveProps(nextProps) {
-    this.setState({
-      text: this._processText(nextProps.text ? nextProps.text.map(t => Object.assign({}, t)) : null)
-    })
-  }
+  componentDidUpdate(prevProps){
+  	const { text } = this.props;
+  	if (prevProps.text !== text){
+			this.setState({
+				text: this._processText(text ? text.map(t => Object.assign({}, t)) : null)
+			})
+		}
+	}
 
   _processText(text) {
     text && text.forEach(t => t.fontColor = processColor(t.fontColor))
